@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼多多福袋互助 - 免费领百亿补贴消费券</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <!-- 引入Supabase客户端 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E02E24', // 拼多多红色
+                        secondary: '#FF9500', // 橙色强调色
+                        pdd: {
+                            red: '#E02E24',
+                            orange: '#FF9500',
+                            yellow: '#FFCC00',
+                            dark: '#333333',
+                            light: '#F5F5F5'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .bg-gradient-pdd {
+                background: linear-gradient(135deg, #E02E24 0%, #FF5722 100%);
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-10px); }
+                100% { transform: translateY(0px); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen font-sans">
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-50 bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-lg bg-gradient-pdd flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    <i class="fa fa-gift"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-pdd-dark">拼多多福袋互助</h1>
+                    <p class="text-xs text-gray-500">v3.0.0 多人共享版</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-1">
+                <button onclick="refreshCodes()" class="px-3 py-1.5 rounded-full text-sm bg-pdd-light hover:bg-gray-200 transition-colors duration-200 flex items-center">
+                    <i class="fa fa-refresh mr-1.5"></i>
+                    <span>刷新</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 快捷导航 -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="container mx-auto px-4 py-3 overflow-x-auto">
+            <div class="flex space-x-4 whitespace-nowrap">
+                <a href="#" class="flex items-center px-3 py-2 rounded-lg bg-pdd-red/10 text-pdd-red font-medium text-sm">
+                    <i class="fa fa-shopping-bag mr-2"></i>
+                    <span>拼多多福袋</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200">
+                    <i class="fa fa-cutlery mr-2"></i>
+                    <span>外卖优惠互助</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200">
+                    <i class="fa fa-users mr-2"></i>
+                    <span>拼多多多人团</span>
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs bg-orange-100 text-orange-600 rounded-full">HOT</span>
+                </a>
+                <a href="#" class="flex items-center px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-700 text-sm transition-colors duration-200">
+                    <i class="fa fa-coins mr-2"></i>
+                    <span>淘宝淘金币</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区 -->
+    <main class="container mx-auto px-4 py-6">
+        <!-- 横幅广告 -->
+        <div class="mb-6 rounded-xl overflow-hidden shadow-lg">
+            <div class="bg-gradient-pdd p-6 text-white relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 opacity-10">
+                    <i class="fa fa-gift text-9xl"></i>
+                </div>
+                <div class="relative z-10">
+                    <h2 class="text-2xl font-bold mb-2 text-shadow">拼多多百亿补贴消费券</h2>
+                    <p class="text-white/90 mb-4">免费领取，互助助力更快成功</p>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="#submit" class="px-4 py-2 bg-white text-pdd-red rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200">
+                            提交我的福袋码
+                        </a>
+                        <button onclick="refreshCodes()" class="px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg font-medium hover:bg-white/30 transition-all duration-200">
+                            查看可用福袋
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计信息 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">今日可用</p>
+                        <p class="text-2xl font-bold text-pdd-red mt-1" id="available-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-pdd-red/10 flex items-center justify-center text-pdd-red">
+                        <i class="fa fa-ticket text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">今日已用</p>
+                        <p class="text-2xl font-bold text-green-500 mt-1" id="used-count">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+                        <i class="fa fa-check-circle text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">我发布的</p>
+                        <p class="text-2xl font-bold text-blue-500 mt-1" id="my-posted">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                        <i class="fa fa-upload text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-500 text-sm">我使用的</p>
+                        <p class="text-2xl font-bold text-purple-500 mt-1" id="my-used">0</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500">
+                        <i class="fa fa-history text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 标签页切换 -->
+        <div class="bg-white rounded-xl shadow-md mb-6 overflow-hidden">
+            <div class="flex border-b border-gray-100">
+                <button class="tab-btn active flex-1 py-4 text-center font-medium text-pdd-red border-b-2 border-pdd-red" onclick="switchTab('available')">
+                    可用福袋码
+                </button>
+                <button class="tab-btn flex-1 py-4 text-center font-medium text-gray-500" onclick="switchTab('my-posted')">
+                    我发布的
+                </button>
+                <button class="tab-btn flex-1 py-4 text-center font-medium text-gray-500" onclick="switchTab('my-used')">
+                    我使用的
+                </button>
+            </div>
+            
+            <!-- 可用福袋码内容 -->
+            <div class="tab-content active p-6" id="available-content">
+                <div id="available-empty" class="text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 text-gray-300 animate-float">
+                        <i class="fa fa-gift text-6xl"></i>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-700 mb-2">大家太热情啦</h3>
+                    <p class="text-gray-500 mb-6">当前暂无可用福袋码，刷新看看有新的了没</p>
+                    <button onclick="refreshCodes()" class="px-6 py-3 bg-pdd-red text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:bg-pdd-red/90 transition-all duration-200">
+                        <i class="fa fa-refresh mr-2"></i>
+                        刷新福袋码
+                    </button>
+                </div>
+                
+                <div id="available-list" class="space-y-4 hidden">
+                    <!-- 福袋码将通过Supabase实时加载 -->
+                </div>
+            </div>
+            
+            <!-- 我发布的内容 -->
+            <div class="tab-content p-6 hidden" id="my-posted-content">
+                <div id="my-posted-empty" class="text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 text-gray-300">
+                        <i class="fa fa-upload text-6xl"></i>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-700 mb-2">你还没有发布过福袋码</h3>
+                    <p class="text-gray-500 mb-6">提交你的福袋码，让大家帮你助力</p>
+                    <a href="#submit" class="px-6 py-3 bg-pdd-red text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:bg-pdd-red/90 transition-all duration-200 inline-block">
+                        <i class="fa fa-plus mr-2"></i>
+                        提交福袋码
+                    </a>
+                </div>
+                
+                <div id="my-posted-list" class="space-y-4 hidden">
+                    <!-- 我发布的福袋码将通过JS动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 我使用的内容 -->
+            <div class="tab-content p-6 hidden" id="my-used-content">
+                <div id="my-used-empty" class="text-center py-12">
+                    <div class="w-24 h-24 mx-auto mb-4 text-gray-300">
+                        <i class="fa fa-history text-6xl"></i>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-700 mb-2">你还没有使用过福袋码</h3>
+                    <p class="text-gray-500 mb-6">刷新看看有没有可用的福袋码</p>
+                    <button onclick="refreshCodes()" class="px-6 py-3 bg-pdd-red text-white rounded-lg font-medium shadow-md hover:shadow-lg hover:bg-pdd-red/90 transition-all duration-200">
+                        <i class="fa fa-refresh mr-2"></i>
+                        刷新福袋码
+                    </button>
+                </div>
+                
+                <div id="my-used-list" class="space-y-4 hidden">
+                    <!-- 我使用的福袋码将通过JS动态生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- 提交福袋码表单 -->
+        <div id="submit" class="bg-white rounded-xl shadow-md p-6 mb-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fa fa-plus-circle text-pdd-red mr-2"></i>
+                提交我的福袋码
+            </h3>
+            <p class="text-gray-500 mb-6">提交你的福袋码，让更多人帮你助力，更快获得百亿补贴消费券</p>
+            
+            <form id="submit-form" onsubmit="submitCode(event)">
+                <div class="mb-4">
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-1">福袋码</label>
+                    <input 
+                        type="text" 
+                        id="code" 
+                        placeholder="请输入你的拼多多福袋码" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdd-red/50 focus:border-pdd-red outline-none"
+                        required
+                    >
+                </div>
+                <div class="mb-4">
+                    <label for="remark" class="block text-sm font-medium text-gray-700 mb-1">备注（选填）</label>
+                    <input 
+                        type="text" 
+                        id="remark" 
+                        placeholder="例如：还差3人，必回" 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pdd-red/50 focus:border-pdd-red outline-none"
+                    >
+                </div>
+                <button 
+                    type="submit" 
+                    id="submit-btn"
+                    class="w-full py-3 bg-gradient-pdd text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                    <i class="fa fa-paper-plane mr-2"></i>
+                    提交福袋码
+                </button>
+            </form>
+        </div>
+        
+        <!-- 使用说明 -->
+        <div class="bg-white rounded-xl shadow-md p-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fa fa-info-circle text-blue-500 mr-2"></i>
+                使用说明
+            </h3>
+            <div class="space-y-3 text-gray-600">
+                <div class="flex">
+                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mr-3 mt-0.5">1</span>
+                    <p>复制福袋码，打开拼多多APP，会自动弹出助力窗口</p>
+                </div>
+                <div class="flex">
+                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mr-3 mt-0.5">2</span>
+                    <p>点击助力按钮，完成助力操作</p>
+                </div>
+                <div class="flex">
+                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mr-3 mt-0.5">3</span>
+                    <p>提交你自己的福袋码，让更多人帮你助力</p>
+                </div>
+                <div class="flex">
+                    <span class="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mr-3 mt-0.5">4</span>
+                    <p>福袋码会在24小时后自动过期删除</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-100 mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center text-gray-500 text-sm">
+                <p class="mb-2">拼多多福袋互助平台 v3.0.0 多人共享版</p>
+                <p>本平台仅提供信息分享服务，与拼多多官方无关</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 成功提示弹窗 -->
+    <div id="success-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div class="text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center text-green-500">
+                    <i class="fa fa-check text-3xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">提交成功！</h3>
+                <p class="text-gray-500 mb-6">你的福袋码已成功提交，很快就会有人帮你助力</p>
+                <button onclick="closeModal()" class="px-6 py-2 bg-pdd-red text-white rounded-lg font-medium">
+                    知道了
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================== 在这里替换成你自己的Supabase信息 ======================
+        const SUPABASE_URL = 'https://cxcolenrxxlfoxdsqmee.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_ECnabhyTqUgQUbUGJ578FQ_OScg6aWU';
+        // ==========================================================================
+
+        // 初始化Supabase客户端
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // 本地存储工具
+        const storage = {
+            get: (key) => {
+                try {
+                    return JSON.parse(localStorage.getItem(key)) || [];
+                } catch (e) {
+                    return [];
+                }
+            },
+            set: (key, value) => {
+                localStorage.setItem(key, JSON.stringify(value));
+            },
+            add: (key, item) => {
+                const items = storage.get(key);
+                items.unshift(item);
+                storage.set(key, items);
+                return items;
+            }
+        };
+
+        // 全局变量
+        let currentTab = 'available';
+        let globalCodes = [];
+
+        // 更新所有统计数字
+        function updateAllStats() {
+            const myPosted = storage.get('myPosted');
+            const myUsed = storage.get('myUsed');
+            
+            document.getElementById('available-count').textContent = globalCodes.length;
+            document.getElementById('used-count').textContent = Math.floor(Math.random() * 50) + 10;
+            document.getElementById('my-posted').textContent = myPosted.length;
+            document.getElementById('my-used').textContent = myUsed.length;
+        }
+
+        // 格式化时间
+        function formatTime(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            
+            if (diffMins < 1) return '刚刚';
+            if (diffMins < 60) return `${diffMins}分钟前`;
+            if (diffHours < 24) return `${diffHours}小时前`;
+            return date.toLocaleDateString();
+        }
+
+        // 渲染通用列表
+        function renderList(listId, emptyId, items, renderItem) {
+            const listElement = document.getElementById(listId);
+            const emptyElement = document.getElementById(emptyId);
+            
+            if (items.length === 0) {
+                emptyElement.classList.remove('hidden');
+                listElement.classList.add('hidden');
+                return;
+            }
+
+            emptyElement.classList.add('hidden');
+            listElement.classList.remove('hidden');
+            
+            listElement.innerHTML = items.map(renderItem).join('');
+        }
+
+        // 渲染可用福袋码列表
+        function renderAvailableCodes() {
+            renderList('available-list', 'available-empty', globalCodes, code => `
+                <div class="border border-gray-100 rounded-lg p-4 hover:border-pdd-red/30 hover:bg-pdd-red/5 transition-all duration-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center">
+                                <span class="text-xl font-bold text-pdd-dark mr-3">${code.code}</span>
+                                <span class="px-2 py-0.5 text-xs bg-green-100 text-green-600 rounded-full">可用</span>
+                            </div>
+                            ${code.remark ? `<p class="text-gray-500 text-sm mt-1">${code.remark}</p>` : ''}
+                        </div>
+                        <button onclick="copyCode('${code.id}', '${code.code}')" class="px-3 py-1.5 bg-pdd-red text-white rounded-lg text-sm font-medium hover:bg-pdd-red/90 transition-colors duration-200">
+                            <i class="fa fa-copy mr-1"></i>复制
+                        </button>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span><i class="fa fa-clock-o mr-1"></i>${formatTime(code.created_at)}</span>
+                        <span><i class="fa fa-users mr-1"></i>已有${code.helps}人助力</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        // 渲染我发布的福袋码列表
+        function renderMyPostedCodes() {
+            const myPosted = storage.get('myPosted');
+            renderList('my-posted-list', 'my-posted-empty', myPosted, code => `
+                <div class="border border-gray-100 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center">
+                                <span class="text-xl font-bold text-pdd-dark mr-3">${code.code}</span>
+                                <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-600 rounded-full">已发布</span>
+                            </div>
+                            ${code.remark ? `<p class="text-gray-500 text-sm mt-1">${code.remark}</p>` : ''}
+                        </div>
+                        <button onclick="deletePostedCode('${code.id}', '${code.code}')" class="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-200">
+                            <i class="fa fa-trash mr-1"></i>删除
+                        </button>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-400">
+                        <span><i class="fa fa-clock-o mr-1"></i>${code.time}</span>
+                        <span><i class="fa fa-users mr-1"></i>已有${code.helps}人助力</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        // 渲染我使用的福袋码列表
+        function renderMyUsedCodes() {
+            const myUsed = storage.get('myUsed');
+            renderList('my-used-list', 'my-used-empty', myUsed, code => `
+                <div class="border border-gray-100 rounded-lg p-4 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center">
+                                <span class="text-xl font-bold text-pdd-dark mr-3">${code.code}</span>
+                                <span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-600 rounded-full">已使用</span>
+                            </div>
+                        </div>
+                        <button onclick="copyCode('', '${code.code}')" class="px-3 py-1.5 bg-gray-500 text-white rounded-lg text-sm font-medium hover:bg-gray-600 transition-colors duration-200">
+                            <i class="fa fa-copy mr-1"></i>再复制
+                        </button>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                        <span><i class="fa fa-clock-o mr-1"></i>使用时间：${code.time}</span>
+                    </div>
+                </div>
+            `);
+        }
+
+        // 复制福袋码并增加助力次数
+        async function copyCode(id, code) {
+            navigator.clipboard.writeText(code).then(async () => {
+                // 显示复制成功提示
+                const buttons = document.querySelectorAll('button');
+                buttons.forEach(btn => {
+                    if (btn.getAttribute('onclick') === `copyCode('${id}', '${code}')` || 
+                        btn.getAttribute('onclick') === `copyCode('', '${code}')`) {
+                        const originalText = btn.innerHTML;
+                        btn.innerHTML = '<i class="fa fa-check mr-1"></i>已复制';
+                        btn.classList.remove('bg-pdd-red', 'bg-gray-500');
+                        btn.classList.add('bg-green-500');
+                        
+                        setTimeout(() => {
+                            btn.innerHTML = originalText;
+                            btn.classList.remove('bg-green-500');
+                            btn.classList.add(originalText.includes('再复制') ? 'bg-gray-500' : 'bg-pdd-red');
+                        }, 2000);
+                    }
+                });
+
+                // 如果是从可用列表复制的，增加助力次数
+                if (id) {
+                    try {
+                        await supabase
+                            .from('codes')
+                            .update({ helps: supabase.raw('helps + 1') })
+                            .eq('id', id);
+                        
+                        // 更新本地数据
+                        const codeIndex = globalCodes.findIndex(c => c.id === id);
+                        if (codeIndex !== -1) {
+                            globalCodes[codeIndex].helps++;
+                        }
+                    } catch (e) {
+                        console.log('更新助力次数失败');
+                    }
+                }
+
+                // 记录使用过的福袋码
+                const usedCodes = storage.get('myUsed');
+                if (!usedCodes.some(c => c.code === code)) {
+                    storage.add('myUsed', { code, time: new Date().toLocaleString() });
+                    // 实时更新
+                    updateAllStats();
+                    renderMyUsedCodes();
+                }
+            }).catch(err => {
+                // 降级方案
+                alert('复制成功！福袋码：' + code);
+                // 即使剪贴板失败也记录使用
+                const usedCodes = storage.get('myUsed');
+                if (!usedCodes.some(c => c.code === code)) {
+                    storage.add('myUsed', { code, time: new Date().toLocaleString() });
+                    updateAllStats();
+                    renderMyUsedCodes();
+                }
+            });
+        }
+
+        // 删除我发布的福袋码
+        async function deletePostedCode(id, code) {
+            if (confirm('确定要删除这个福袋码吗？')) {
+                try {
+                    // 从数据库删除
+                    await supabase
+                        .from('codes')
+                        .delete()
+                        .eq('id', id);
+                    
+                    // 从本地存储删除
+                    let myPosted = storage.get('myPosted');
+                    myPosted = myPosted.filter(c => c.code !== code);
+                    storage.set('myPosted', myPosted);
+                    
+                    // 从全局列表删除
+                    globalCodes = globalCodes.filter(c => c.id !== id);
+                    
+                    // 实时更新
+                    updateAllStats();
+                    renderMyPostedCodes();
+                    renderAvailableCodes();
+                } catch (e) {
+                    alert('删除失败，请稍后重试');
+                }
+            }
+        }
+
+        // 标签页切换
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            // 移除所有激活状态
+            document.querySelectorAll('.tab-btn').forEach(t => {
+                t.classList.remove('active', 'text-pdd-red', 'border-b-2', 'border-pdd-red');
+                t.classList.add('text-gray-500');
+            });
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // 添加当前激活状态
+            const activeTab = document.querySelector(`[onclick="switchTab('${tabId}')"]`);
+            activeTab.classList.add('active', 'text-pdd-red', 'border-b-2', 'border-pdd-red');
+            activeTab.classList.remove('text-gray-500');
+            
+            document.getElementById(`${tabId}-content`).classList.remove('hidden');
+            
+            // 切换时重新渲染
+            if (tabId === 'available') {
+                renderAvailableCodes();
+            } else if (tabId === 'my-posted') {
+                renderMyPostedCodes();
+            } else if (tabId === 'my-used') {
+                renderMyUsedCodes();
+            }
+        }
+
+        // 提交福袋码
+        async function submitCode(e) {
+            e.preventDefault();
+            
+            const code = document.getElementById('code').value.trim();
+            const remark = document.getElementById('remark').value.trim();
+            const submitBtn = document.getElementById('submit-btn');
+            
+            if (!code) {
+                alert('请输入福袋码');
+                return;
+            }
+            
+            // 禁用按钮防止重复提交
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>提交中...';
+            
+            try {
+                // 插入到数据库
+                const { data, error } = await supabase
+                    .from('codes')
+                    .insert([{ code, remark }])
+                    .select();
+                
+                if (error) {
+                    if (error.code === '23505') { // 唯一约束错误
+                        alert('这个福袋码已经有人提交过了');
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    // 保存到本地存储
+                    storage.add('myPosted', {
+                        id: data[0].id,
+                        code,
+                        remark,
+                        time: new Date().toLocaleString(),
+                        helps: 0
+                    });
+                    
+                    // 添加到全局列表
+                    globalCodes.unshift(data[0]);
+                    
+                    // 实时更新
+                    updateAllStats();
+                    renderMyPostedCodes();
+                    renderAvailableCodes();
+                    
+                    // 重置表单
+                    document.getElementById('submit-form').reset();
+                    
+                    // 显示成功弹窗
+                    document.getElementById('success-modal').classList.remove('hidden');
+                }
+            } catch (e) {
+                alert('提交失败，请稍后重试');
+                console.error(e);
+            } finally {
+                // 恢复按钮状态
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa fa-paper-plane mr-2"></i>提交福袋码';
+            }
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        // 从Supabase加载福袋码
+        async function loadCodesFromSupabase() {
+            try {
+                const { data, error } = await supabase
+                    .from('codes')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                globalCodes = data || [];
+                updateAllStats();
+                renderAvailableCodes();
+            } catch (e) {
+                console.error('加载福袋码失败', e);
+            }
+        }
+
+        // 刷新福袋码
+        async function refreshCodes() {
+            // 模拟加载效果
+            const buttons = document.querySelectorAll('[onclick="refreshCodes()"]');
+            buttons.forEach(btn => {
+                btn.innerHTML = '<i class="fa fa-refresh fa-spin mr-2"></i>加载中...';
+                btn.disabled = true;
+            });
+            
+            await loadCodesFromSupabase();
+            
+            // 切换到可用福袋码标签
+            switchTab('available');
+            
+            // 恢复按钮状态
+            buttons.forEach(btn => {
+                btn.innerHTML = '<i class="fa fa-refresh mr-2"></i>刷新福袋码';
+                btn.disabled = false;
+            });
+        }
+
+        // 实时订阅数据库变化
+        function subscribeToChanges() {
+            supabase
+                .channel('codes-changes')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'codes' }, (payload) => {
+                    // 当有新的福袋码提交时
+                    if (payload.eventType === 'INSERT') {
+                        // 检查是否已经存在
+                        if (!globalCodes.some(c => c.id === payload.new.id)) {
+                            globalCodes.unshift(payload.new);
+                            updateAllStats();
+                            if (currentTab === 'available') {
+                                renderAvailableCodes();
+                            }
+                        }
+                    }
+                    // 当有福袋码被删除时
+                    else if (payload.eventType === 'DELETE') {
+                        globalCodes = globalCodes.filter(c => c.id !== payload.old.id);
+                        updateAllStats();
+                        if (currentTab === 'available') {
+                            renderAvailableCodes();
+                        }
+                    }
+                    // 当有助力次数更新时
+                    else if (payload.eventType === 'UPDATE') {
+                        const index = globalCodes.findIndex(c => c.id === payload.new.id);
+                        if (index !== -1) {
+                            globalCodes[index] = payload.new;
+                            if (currentTab === 'available') {
+                                renderAvailableCodes();
+                            }
+                        }
+                    }
+                })
+                .subscribe();
+        }
+
+        // 点击弹窗外部关闭
+        document.getElementById('success-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // 页面加载完成后初始化
+        window.onload = async function() {
+            updateAllStats();
+            await loadCodesFromSupabase();
+            subscribeToChanges(); // 开启实时同步
+        };
+    </script>
+</body>
+</html>
